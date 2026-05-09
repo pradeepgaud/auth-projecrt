@@ -1,60 +1,3 @@
-// import express from "express";
-// import cors from "cors";
-// import "dotenv/config";
-// import cookieParser from "cookie-parser";
-// import connectDB from "./Config/Mongodb.js";
-// import authRouter from "./Routes/AuthRoutes.js";
-// import userRouter from "./Routes/UserRoutes.js";
-
-// const app = express();
-// const port = process.env.PORT || 4000;
-
-// // Connect DB
-// connectDB();
-
-// // Middlewares
-// app.use(express.json());
-// app.use(cookieParser());
-
-// // ✅ CORS CONFIG (SINGLE & CORRECT)
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       // Allow requests with no origin (Postman, mobile apps, server-to-server)
-//       if (!origin) return callback(null, true);
-
-//       // Allow localhost
-//       if (origin === "http://localhost:5173") {
-//         return callback(null, true);
-//       }
-
-//       // Allow ALL Vercel domains
-//       if (origin.endsWith(".vercel.app")) {
-//         return callback(null, true);
-//       }
-
-//       // Block others
-//       return callback(new Error("Not allowed by CORS"));
-//     },
-//     credentials: true, // Cookies allow karne ke liye
-//     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//   })
-// );
-
-// // Routes
-// app.get("/", (req, res) => {
-//   res.send("Backend Connected Successfully!");
-// });
-
-// app.use("/api/auth", authRouter);
-// app.use("/api/user", userRouter);
-
-// // Start server
-// app.listen(port, () => {
-//   console.log(`Server running on port ${port}`);
-// });
-
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -86,30 +29,28 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, mobile app, server)
+      // Allow requests without origin
       if (!origin) return callback(null, true);
 
-      // Allow localhost directly
+      // Localhost allow
       if (origin.startsWith("http://localhost")) {
         return callback(null, true);
       }
 
-      // Allow wildcard domains (Vercel / Render / Netlify)
+      // Allow Vercel / Render / Netlify
       if (
         origin.endsWith(".vercel.app") ||
-        origin.endsWith(".netlify.app") ||
-        origin.endsWith(".onrender.com")
+        origin.endsWith(".onrender.com") ||
+        origin.endsWith(".netlify.app")
       ) {
         return callback(null, true);
       }
 
-      // Otherwise block
-      return callback(new Error("❌ Not allowed by CORS"));
+      return callback(new Error("Not allowed by CORS"));
     },
+
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // ---------------- ROUTES ----------------

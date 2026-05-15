@@ -168,10 +168,16 @@ const Login = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
     try {
+      setLoading(true);
+
       axios.defaults.withCredentials = true;
 
       if (state === "Sign Up") {
@@ -182,8 +188,12 @@ const Login = () => {
         });
 
         if (data.success) {
+          toast.success(data.message);
+
           setIsLoggedin(true);
-          getUserData();
+
+          await getUserData();
+
           navigate("/");
         } else {
           toast.error(data.message);
@@ -195,8 +205,12 @@ const Login = () => {
         });
 
         if (data.success) {
+          toast.success(data.message);
+
           setIsLoggedin(true);
-          getUserData();
+
+          await getUserData();
+
           navigate("/");
         } else {
           toast.error(data.message);
@@ -204,6 +218,8 @@ const Login = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -272,10 +288,11 @@ const Login = () => {
           </p>
 
           <button
+            disabled={loading}
             type="submit"
             className="w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium"
           >
-            {state}
+            {loading ? "Please Wait..." : state}
           </button>
         </form>
         {/* Form End */}

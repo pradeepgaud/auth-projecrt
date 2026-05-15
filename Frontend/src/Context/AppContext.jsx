@@ -1,142 +1,6 @@
-// // import axios from "axios";
-// // import { createContext, useEffect, useState } from "react";
-// // import { toast } from "react-toastify";
-
-// // const AppContext = createContext();
-
-// // export const AppContextProvider = (props) => {
-// //   // axios.defaults.withCredentials = true
-// //   const backendUrl = import.meta.env.VITE_BACKEND_URL; // <-- No trailing slash
-// //   const [isLoggedin, setIsLoggedin] = useState(false);
-// //   const [userData, setUserData] = useState(false);
-
-// //   const getAuthState = async () => {
-// //     console.log("Backend URL:", backendUrl);
-// //     console.log(`${backendUrl}/api/auth/is-auth`);
-// //     try {
-// //       const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`, {
-// //         withCredentials: true,
-// //       });
-
-// //       if (data.success) {
-// //         setIsLoggedin(true);
-// //         getUserData();
-// //       }
-// //     } catch (error) {
-// //       toast.error(error.response?.data?.message || error.message);
-// //     }
-// //   };
-
-// //   const getUserData = async () => {
-// //     try {
-// //       const { data } = await axios.get(`${backendUrl}/api/user/data`, {
-// //         withCredentials: true,
-// //       });
-
-// //       if (data.success) {
-// //         setUserData(data.userData);
-// //       } else {
-// //         toast.error(data.message);
-// //       }
-// //     } catch (error) {
-// //       toast.error(error.response?.data?.message || error.message);
-// //     }
-// //   };
-
-// //   useEffect(() => {
-// //     getAuthState();
-// //   }, []);
-
-// //   const value = {
-// //     backendUrl,
-// //     isLoggedin,
-// //     setIsLoggedin,
-// //     userData,
-// //     setUserData,
-// //     getUserData,
-// //   };
-
-// //   return (
-// //     <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
-// //   );
-// // };
-
-// // export default AppContext;
-
-// import axios from "axios";
-// import { createContext, useEffect, useState } from "react";
-// import { toast } from "react-toastify";
-
-// axios.defaults.withCredentials = true;
-
-// const AppContext = createContext();
-
-// export const AppContextProvider = ({ children }) => {
-//   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
-//   const [isLoggedin, setIsLoggedin] = useState(false);
-//   const [userData, setUserData] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   // ================= CHECK AUTH =================
-//   const getAuthState = async () => {
-//     try {
-//       const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`);
-
-//       if (data.success) {
-//         setIsLoggedin(true);
-//         await getUserData();
-//       } else {
-//         setIsLoggedin(false);
-//         setUserData(null);
-//       }
-//     } catch (error) {
-//       setIsLoggedin(false);
-//       setUserData(null);
-
-//       console.log(error.message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ================= GET USER =================
-//   const getUserData = async () => {
-//     try {
-//       const { data } = await axios.get(`${backendUrl}/api/user/data`);
-
-//       if (data.success) {
-//         setUserData(data.userData);
-//       }
-//     } catch (error) {
-//       console.log(error.message);
-//     }
-//   };
-
-//   useEffect(() => {
-//     getAuthState();
-//   }, []);
-
-//   const value = {
-//     backendUrl,
-//     isLoggedin,
-//     setIsLoggedin,
-//     userData,
-//     setUserData,
-//     getUserData,
-//     loading,
-//   };
-
-//   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-// };
-
-// export default AppContext;
-
 import axios from "axios";
-import { createContext, useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { createContext, useEffect, useState, useRef } from "react";
 
-// Set withCredentials globally so every request sends cookies
 axios.defaults.withCredentials = true;
 
 const AppContext = createContext();
@@ -146,7 +10,45 @@ export const AppContextProvider = ({ children }) => {
 
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true); // true until first auth check completes
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Store token in memory (not localStorage for security)
+  // This persists across component re-renders within the session
+  const tokenRef = useRef(null);
+
+  // ── Set up axios interceptor to attach token to every request ──────────────
+  useEffect(() => {
+    const interceptor = axios.interceptors.request.use((config) => {
+      // If we have a token stored, send it as Authorization header
+      // This works cross-origin even when cookies are blocked
+      if (tokenRef.current) {
+        config.headers.Authorization = `Bearer ${tokenRef.current}`;
+      }
+      return config;
+    });
+
+    // Cleanup interceptor on unmount
+    return () => axios.interceptors.request.eject(interceptor);
+  }, []);
+
+  // ── Save token helper ──────────────────────────────────────────────────────
+  const saveToken = (token) => {
+    tokenRef.current = token;
+    // Also save to sessionStorage so token survives page refresh
+    if (token) {
+      sessionStorage.setItem("authToken", token);
+    } else {
+      sessionStorage.removeItem("authToken");
+    }
+  };
+
+  // ── Get token from sessionStorage on mount ─────────────────────────────────
+  useEffect(() => {
+    const stored = sessionStorage.getItem("authToken");
+    if (stored) {
+      tokenRef.current = stored;
+    }
+  }, []);
 
   // ── GET USER DATA ──────────────────────────────────────────────────────────
   const getUserData = async () => {
@@ -155,9 +57,7 @@ export const AppContextProvider = ({ children }) => {
       if (data.success) {
         setUserData(data.userData);
       } else {
-        // BUG 5 FIX: surface the error instead of silently ignoring
         setUserData(null);
-        console.warn("getUserData failed:", data.message);
       }
     } catch (error) {
       setUserData(null);
@@ -165,28 +65,26 @@ export const AppContextProvider = ({ children }) => {
     }
   };
 
-  // ── CHECK AUTH STATE ON EVERY PAGE LOAD ───────────────────────────────────
+  // ── CHECK AUTH ON PAGE LOAD/REFRESH ───────────────────────────────────────
   const getAuthState = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`);
-
       if (data.success) {
         setIsLoggedin(true);
         await getUserData();
       } else {
         setIsLoggedin(false);
         setUserData(null);
+        saveToken(null);
       }
     } catch (error) {
-      // 401 = not logged in, not a real error — don't show toast
       setIsLoggedin(false);
       setUserData(null);
-      console.log(
-        "Auth check:",
-        error.response?.status === 401 ? "not logged in" : error.message,
-      );
+      // Don't clear token on network error, only on 401
+      if (error.response?.status === 401) {
+        saveToken(null);
+      }
     } finally {
-      // BUG 5 FIX: always mark loading done so UI renders correctly
       setLoading(false);
     }
   };
@@ -203,6 +101,7 @@ export const AppContextProvider = ({ children }) => {
     setUserData,
     getUserData,
     loading,
+    saveToken, // expose so Login.jsx can call it after login
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

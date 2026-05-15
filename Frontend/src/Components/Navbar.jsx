@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { userData, backendUrl, setUserData, setIsLoggedin } =
+  const { userData, backendUrl, setUserData, setIsLoggedin, saveToken } =
     useContext(AppContext);
 
   const sendVerificationOtp = async () => {
@@ -16,8 +16,8 @@ const Navbar = () => {
         `${backendUrl}/api/auth/send-verify-otp`,
       );
       if (data.success) {
-        navigate("/email-verify");
         toast.success(data.message);
+        navigate("/email-verify");
       } else {
         toast.error(data.message);
       }
@@ -30,6 +30,8 @@ const Navbar = () => {
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/logout`);
       if (data.success) {
+        // ✅ Clear stored token on logout
+        saveToken(null);
         setIsLoggedin(false);
         setUserData(null);
         navigate("/");
@@ -59,7 +61,6 @@ const Navbar = () => {
                   Verify email
                 </li>
               )}
-              {/* BUG 4 FIX: "curso↵r-pointer" was broken across two lines in className */}
               <li
                 onClick={logout}
                 className="py-1 px-2 hover:bg-gray-200 cursor-pointer rounded whitespace-nowrap"

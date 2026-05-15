@@ -7,7 +7,8 @@ import { toast } from "react-toastify";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { backendUrl, setIsLoggedin, setUserData } = useContext(AppContext);
+  const { backendUrl, setIsLoggedin, setUserData, saveToken } =
+    useContext(AppContext);
 
   const [state, setState] = useState("Sign Up");
   const [name, setName] = useState("");
@@ -31,10 +32,9 @@ const Login = () => {
 
         if (data.success) {
           toast.success(data.message);
+          // ✅ Save token so future requests (verify OTP etc.) work cross-origin
+          saveToken(data.token);
           setIsLoggedin(true);
-          // ✅ KEY FIX: Set userData directly from register response
-          // Previously called getUserData() which made a 2nd API call
-          // that was failing silently in production (cross-origin cookie issue)
           setUserData(data.user);
           navigate("/");
         } else {
@@ -48,8 +48,9 @@ const Login = () => {
 
         if (data.success) {
           toast.success(data.message);
+          // ✅ Save token
+          saveToken(data.token);
           setIsLoggedin(true);
-          // ✅ KEY FIX: Set userData directly from login response
           setUserData(data.user);
           navigate("/");
         } else {

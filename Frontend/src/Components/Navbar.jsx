@@ -1,13 +1,13 @@
 import React, { useContext } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
-import AppContext from "../Context/AppContext";
+import AppContext, { setAuthToken } from "../Context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { userData, backendUrl, setUserData, setIsLoggedin, saveToken } =
+  const { userData, backendUrl, setUserData, setIsLoggedin } =
     useContext(AppContext);
 
   const sendVerificationOtp = async () => {
@@ -28,19 +28,15 @@ const Navbar = () => {
 
   const logout = async () => {
     try {
-      const { data } = await axios.post(`${backendUrl}/api/auth/logout`);
-      if (data.success) {
-        // ✅ Clear stored token on logout
-        saveToken(null);
-        setIsLoggedin(false);
-        setUserData(null);
-        navigate("/");
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
+      await axios.post(`${backendUrl}/api/auth/logout`);
+    } catch (_) {
+      // ignore logout API errors — clear state anyway
     }
+    // ✅ Always clear token and state regardless of API response
+    setAuthToken(null);
+    setIsLoggedin(false);
+    setUserData(null);
+    navigate("/");
   };
 
   return (

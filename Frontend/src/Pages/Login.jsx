@@ -1,14 +1,13 @@
 import React, { useContext, useState } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
-import AppContext from "../Context/AppContext";
+import AppContext, { setAuthToken } from "../Context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { backendUrl, setIsLoggedin, setUserData, saveToken } =
-    useContext(AppContext);
+  const { backendUrl, setIsLoggedin, setUserData } = useContext(AppContext);
 
   const [state, setState] = useState("Sign Up");
   const [name, setName] = useState("");
@@ -31,11 +30,11 @@ const Login = () => {
         });
 
         if (data.success) {
-          toast.success(data.message);
-          // ✅ Save token so future requests (verify OTP etc.) work cross-origin
-          saveToken(data.token);
+          // ✅ Set token globally — now every request will have Authorization header
+          setAuthToken(data.token);
           setIsLoggedin(true);
           setUserData(data.user);
+          toast.success(data.message);
           navigate("/");
         } else {
           toast.error(data.message);
@@ -47,11 +46,11 @@ const Login = () => {
         });
 
         if (data.success) {
-          toast.success(data.message);
-          // ✅ Save token
-          saveToken(data.token);
+          // ✅ Set token globally
+          setAuthToken(data.token);
           setIsLoggedin(true);
           setUserData(data.user);
+          toast.success(data.message);
           navigate("/");
         } else {
           toast.error(data.message);

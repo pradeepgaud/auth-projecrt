@@ -1,9 +1,28 @@
 import axios from "axios";
-import { createContext, useEffect, useState, useRef } from "react";
+import { createContext, useEffect, useState } from "react";
 
 axios.defaults.withCredentials = true;
 
 const AppContext = createContext();
+
+// ── Token helpers — set once, every axios call gets it automatically ──────────
+export const setAuthToken = (token) => {
+  if (token) {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    sessionStorage.setItem("authToken", token);
+  } else {
+    delete axios.defaults.headers.common["Authorization"];
+    sessionStorage.removeItem("authToken");
+  }
+};
+
+// Restore token on page refresh
+const savedToken = sessionStorage.getItem("authToken");
+if (savedToken) {
+  axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const AppContextProvider = ({ children }) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -12,45 +31,6 @@ export const AppContextProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Store token in memory (not localStorage for security)
-  // This persists across component re-renders within the session
-  const tokenRef = useRef(null);
-
-  // ── Set up axios interceptor to attach token to every request ──────────────
-  useEffect(() => {
-    const interceptor = axios.interceptors.request.use((config) => {
-      // If we have a token stored, send it as Authorization header
-      // This works cross-origin even when cookies are blocked
-      if (tokenRef.current) {
-        config.headers.Authorization = `Bearer ${tokenRef.current}`;
-      }
-      return config;
-    });
-
-    // Cleanup interceptor on unmount
-    return () => axios.interceptors.request.eject(interceptor);
-  }, []);
-
-  // ── Save token helper ──────────────────────────────────────────────────────
-  const saveToken = (token) => {
-    tokenRef.current = token;
-    // Also save to sessionStorage so token survives page refresh
-    if (token) {
-      sessionStorage.setItem("authToken", token);
-    } else {
-      sessionStorage.removeItem("authToken");
-    }
-  };
-
-  // ── Get token from sessionStorage on mount ─────────────────────────────────
-  useEffect(() => {
-    const stored = sessionStorage.getItem("authToken");
-    if (stored) {
-      tokenRef.current = stored;
-    }
-  }, []);
-
-  // ── GET USER DATA ──────────────────────────────────────────────────────────
   const getUserData = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/user/data`);
@@ -61,11 +41,10 @@ export const AppContextProvider = ({ children }) => {
       }
     } catch (error) {
       setUserData(null);
-      console.error("getUserData error:", error.message);
+      console.error("getUserData:", error.message);
     }
   };
 
-  // ── CHECK AUTH ON PAGE LOAD/REFRESH ───────────────────────────────────────
   const getAuthState = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`);
@@ -75,15 +54,12 @@ export const AppContextProvider = ({ children }) => {
       } else {
         setIsLoggedin(false);
         setUserData(null);
-        saveToken(null);
+        setAuthToken(null);
       }
     } catch (error) {
       setIsLoggedin(false);
       setUserData(null);
-      // Don't clear token on network error, only on 401
-      if (error.response?.status === 401) {
-        saveToken(null);
-      }
+      if (error.response?.status === 401) setAuthToken(null);
     } finally {
       setLoading(false);
     }
@@ -101,7 +77,6 @@ export const AppContextProvider = ({ children }) => {
     setUserData,
     getUserData,
     loading,
-    saveToken, // expose so Login.jsx can call it after login
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

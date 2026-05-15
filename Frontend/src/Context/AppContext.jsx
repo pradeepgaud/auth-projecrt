@@ -5,13 +5,14 @@ import { toast } from "react-toastify";
 const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-
   // axios.defaults.withCredentials = true
   const backendUrl = import.meta.env.VITE_BACKEND_URL; // <-- No trailing slash
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(false);
 
   const getAuthState = async () => {
+    console.log("Backend URL:", backendUrl);
+    console.log(`${backendUrl}/api/auth/is-auth`);
     try {
       const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`, {
         withCredentials: true,

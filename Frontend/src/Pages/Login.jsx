@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
+  const { backendUrl, setIsLoggedin, setUserData } = useContext(AppContext);
 
   const [state, setState] = useState("Sign Up");
   const [name, setName] = useState("");
@@ -32,10 +32,12 @@ const Login = () => {
         if (data.success) {
           toast.success(data.message);
           setIsLoggedin(true);
-          await getUserData();
+          // ✅ KEY FIX: Set userData directly from register response
+          // Previously called getUserData() which made a 2nd API call
+          // that was failing silently in production (cross-origin cookie issue)
+          setUserData(data.user);
           navigate("/");
         } else {
-          // BUG 3 FIX: was missing toast.error here — user saw nothing on failure
           toast.error(data.message);
         }
       } else {
@@ -47,10 +49,10 @@ const Login = () => {
         if (data.success) {
           toast.success(data.message);
           setIsLoggedin(true);
-          await getUserData();
+          // ✅ KEY FIX: Set userData directly from login response
+          setUserData(data.user);
           navigate("/");
         } else {
-          // BUG 3 FIX: was missing toast.error here too
           toast.error(data.message);
         }
       }

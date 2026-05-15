@@ -72,12 +72,19 @@ connectDB();
 app.use(express.json());
 app.use(cookieParser());
 
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:5173",
+//       "https://auth-projecrt-git-main-pradeep-gauds-projects.vercel.app",
+//     ],
+//     credentials: true,
+//   }),
+// );
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://auth-projecrt-git-main-pradeep-gauds-projects.vercel.app",
-    ],
+    origin: "https://auth-projecrt.vercel.app",
     credentials: true,
   }),
 );

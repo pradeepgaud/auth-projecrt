@@ -104,9 +104,9 @@
 
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser";
 import "dotenv/config";
-import connectDB from "./Config/mongodb.js";
+import cookieParser from "cookie-parser";
+import connectDB from "./Config/Mongodb.js";
 import authRouter from "./Routes/AuthRoutes.js";
 import userRouter from "./Routes/UserRoutes.js";
 
@@ -115,41 +115,45 @@ const app = express();
 // ── Connect DB ────────────────────────────────────────────────────────────────
 connectDB();
 
-// ── CORS — this is the #1 reason userData is null in production ──────────────
-// Without credentials: true here, the browser BLOCKS the Set-Cookie header
-// even if the frontend sends withCredentials: true
+// ── Allowed Origins ───────────────────────────────────────────────────────────
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // e.g. https://auth-projecrt.vercel.app
-  "http://localhost:5173", // local dev
+  "http://localhost:5173",
   "http://localhost:3000",
-];
+  "https://auth-projecrt.vercel.app",
+  process.env.FRONTEND_URL, // Vercel env se
+].filter(Boolean); // undefined remove karo
 
+// ✅ CORS sabse pehle — express.json() se bhi pehle
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin (mobile apps, curl, Postman)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // Postman/curl allow
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.error(`CORS blocked for origin: ${origin}`);
         callback(new Error(`CORS blocked: ${origin}`));
       }
     },
-    credentials: true, // ✅ REQUIRED — allows cookies to be sent/received cross-origin
+    credentials: true, // cookies cross-origin allow karta hai
   }),
 );
 
-// ── Middleware ────────────────────────────────────────────────────────────────
+// ── Middlewares ───────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(cookieParser());
 
-// ── Routes ───────────────────────────────────────────────────────────────────
+// ── Health Check ──────────────────────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.send("Backend Connected Successfully!");
+});
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 
-// ── Health check ─────────────────────────────────────────────────────────────
-app.get("/", (req, res) => res.send("API is running"));
-
-// ── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ── Start Server ──────────────────────────────────────────────────────────────
+const port = process.env.PORT || 4000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

@@ -10,10 +10,27 @@ const Navbar = () => {
   const { userData, backendUrl, setUserData, setIsLoggedin } =
     useContext(AppContext);
 
+  // const sendVerificationOtp = async () => {
+  //   try {
+  //     const { data } = await axios.post(
+  //       `${backendUrl}/api/auth/send-verify-otp`,
+  //     );
+  //     if (data.success) {
+  //       toast.success(data.message);
+  //       navigate("/email-verify");
+  //     } else {
+  //       toast.error(data.message);
+  //     }
+  //   } catch (error) {
+  //     toast.error(error.response?.data?.message || error.message);
+  //   }
+  // };
   const sendVerificationOtp = async () => {
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/auth/send-verify-otp`,
+        {},
+        { withCredentials: true }, // explicitly cookies bhejo
       );
       if (data.success) {
         toast.success(data.message);
